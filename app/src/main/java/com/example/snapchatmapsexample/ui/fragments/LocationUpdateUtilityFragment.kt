@@ -6,9 +6,9 @@ import android.app.Activity.RESULT_CANCELED
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import com.google.android.gms.location.LocationRequest
+import android.location.Location
+import android.location.LocationManager
 import android.net.Uri
-import com.example.snapchatmapsexample.R
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -19,15 +19,16 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.ViewDataBinding
 import com.example.snapchatmapsexample.BuildConfig.APPLICATION_ID
+import com.example.snapchatmapsexample.R
 import com.example.snapchatmapsexample.base.BaseFragment
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
-import com.google.android.gms.location.FusedLocationProviderClient
+
 
 abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment<T>() {
 
-    private val TAG = "LocationUpdateUtility"
+    private val TAG = "LocationUpdateUtilityfragment"
     private lateinit var mActivity: Activity
     private var isLocationDialogVisible : Boolean = false
     private var locationRequest: LocationRequest? = null
@@ -108,18 +109,39 @@ abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(mActivity)
 
         checkLocationPermissions()
+
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult ?: return
                 for (location in locationResult.locations) {
+
                     // Update UI with location data
-                    // ...
+
                     Log.e(
                         TAG, "==========" + location.latitude.toString() + ", " +
                                 location.longitude + "========="
                     )
 
-                    updatedLatLng(location.latitude, location.longitude)
+                    if (ActivityCompat.checkSelfPermission(
+                            activity,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                            activity,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        return
+                    }
+                    fusedLocationClient.lastLocation
+                        .addOnSuccessListener { location: Location? ->
+                            getBaseActivity().hideLoader()
+
+                            Log.e(
+                                "mylocatioattributeis",
+                                "${location?.latitude}, ${location?.longitude}"
+                            )
+                        }
+                    //updatedLatLng(location.latitude, location.longitude)
                 }
             }
         }
@@ -229,7 +251,7 @@ abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment
         locationRequest?.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         locationRequest?.interval = 5000
         locationRequest?.fastestInterval = 2000
-
+        locationRequest?.isWaitForAccurateLocation = true
 
         val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest!!)
         builder.setAlwaysShow(true)
@@ -263,6 +285,7 @@ abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment
 
     //call startLocationUpdates() method for start live location update
     fun startLocationUpdates() {
+        getBaseActivity().hideLoader()
         if (ActivityCompat.checkSelfPermission(
                 mActivity,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -281,6 +304,16 @@ abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment
             locationCallback,
             Looper.getMainLooper()
         )
+
+
+        /*fusedLocationClient.lastLocation
+            .addOnSuccessListener { location : Location? ->
+                Log.e("mylocatioattributeis", "${location?.latitude}, ${location?.longitude}")
+            }*/
+
+
+
+
         Log.e(TAG, "Get Live Location Start")
     }
 

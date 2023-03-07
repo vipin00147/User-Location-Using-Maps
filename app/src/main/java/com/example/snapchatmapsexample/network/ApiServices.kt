@@ -7,10 +7,10 @@ import retrofit2.http.*
 
 interface ApiServices {
 
-    @GET("get_all_user_location")
+    @POST("/get_all_user_location/")
     fun getAllUsersLocation(@Body requestBody: RequestBody): Call<JsonElement>
 
-    @POST("update_user_location")
+    @POST("/update_user_location/")
     fun updateUserLocation(@Body requestBody: RequestBody): Call<JsonElement>
 
 }

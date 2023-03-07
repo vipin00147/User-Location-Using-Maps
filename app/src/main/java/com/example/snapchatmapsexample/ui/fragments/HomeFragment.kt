@@ -1,31 +1,48 @@
 package com.example.snapchatmapsexample.ui.fragments
 
+import android.app.ActivityManager
+import android.content.Intent
+import android.graphics.Color
 import android.location.Address
 import android.location.Geocoder
 import android.os.Bundle
+import android.os.Handler
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import com.example.snapchatmapsexample.R
+import com.example.snapchatmapsexample.base.BaseActivity.Companion.getLocationCallback
+import com.example.snapchatmapsexample.base.BaseActivity.Companion.isServiceEnded
+import com.example.snapchatmapsexample.base.BaseActivity.Companion.locationBackgroundCallback
+import com.example.snapchatmapsexample.callbacks.GetLocationCallback
 import com.example.snapchatmapsexample.databinding.FragmentHomeBinding
+import com.example.snapchatmapsexample.model.AllUserModel
 import com.example.snapchatmapsexample.model.UserLocation
+import com.example.snapchatmapsexample.services.ForegroundService
 import com.example.snapchatmapsexample.utils.changeFragment
 import com.example.snapchatmapsexample.viewModel.HomeViewModel
 import com.example.snapchatmapsexample.viewModel.ViewModelFactory
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.material.snackbar.Snackbar
 import java.util.*
 
-
-class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>() {
+class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMapReadyCallback,
+    GetLocationCallback {
 
     private var viewModel : HomeViewModel?= null
     var supportMapFragment : SupportMapFragment ?= null
+    var googleMap: GoogleMap ?= null
 
     var animateCount : Int = 0
+    var count  = 0
 
     override fun updatedLatLng(lat: Double, lng: Double) {
         getBaseActivity().hideLoader()
@@ -39,10 +56,21 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>() {
                 getBaseActivity().auth.currentUser?.email.toString()
             )
 
-            viewModel?.updateUserLocation(data)
+            if(count == 0) {
+                viewModel?.updateUserLocation(data)
+                count++
+            }
+
+            if(!isServiceEnded) {
+                locationBackgroundCallback?.setUserCurrentLocation(data)
+            }
 
             setCurrentLocation(lat, lng)
         }
+
+
+
+
         stopLocationUpdates()
     }
 
@@ -60,6 +88,47 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>() {
         initMap()
         initViewModel()
         viewModelObserver()
+        getLocationCallback = this
+        getAllFriendsLocation()
+
+        binding?.buttonStartService?.setOnClickListener{
+            startService(it)
+        }
+        binding?.buttonStopService?.setOnClickListener {
+            stopService(it)
+        }
+
+    }
+
+    fun startService(view : View) {
+
+        if(isLocationServiceRunning()) {
+            Snackbar.make(view,"Service is Already Running", Snackbar.LENGTH_LONG)
+                .setBackgroundTint(Color.RED)
+                .setActionTextColor(Color.WHITE)
+                .setAction("Dismiss",View.OnClickListener {})
+                .show()
+        }
+        else {
+
+            val serviceIntent = Intent(getBaseActivity(), ForegroundService::class.java)
+            serviceIntent.putExtra("inputExtra", "Foreground Service Example in Android")
+            ContextCompat.startForegroundService(getBaseActivity(), serviceIntent)
+
+            Snackbar.make(view,"Service Started", Snackbar.LENGTH_LONG)
+                .setBackgroundTint(ContextCompat.getColor(getBaseActivity(), R.color.green))
+                .setActionTextColor(Color.WHITE)
+                .setAction("Dismiss",View.OnClickListener {})
+                .show()
+
+            getCurrentLocation()
+
+        }
+    }
+
+    private fun getCurrentLocation() {
+        // Get Device Location...
+
         if(getBaseActivity().isGpsEnabled()) {
             getBaseActivity().showLoader()
             getLiveLocation(getBaseActivity())
@@ -67,8 +136,45 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>() {
         else {
             getBaseActivity().showSnackBar("Kindly enable GPS.")
         }
+    }
 
-        getAllFriendsLocation()
+    //Stop Running Service
+    fun stopService(view : View) {
+
+        val serviceIntent = Intent(getBaseActivity(), ForegroundService::class.java)
+
+        if(isLocationServiceRunning()) {
+            getBaseActivity().stopService(serviceIntent)
+
+            Snackbar.make(view,"Service Stopped", Snackbar.LENGTH_LONG)
+                .setBackgroundTint(ContextCompat.getColor(getBaseActivity(), R.color.green))
+                .setActionTextColor(Color.WHITE)
+                .setAction("Dismiss",View.OnClickListener {})
+                .show()
+        }
+        else{
+            Snackbar.make(view,"Service is Already Stopped", Snackbar.LENGTH_LONG)
+                .setBackgroundTint(Color.RED)
+                .setActionTextColor(Color.WHITE)
+                .setAction("Dismiss",View.OnClickListener {})
+                .show()
+        }
+    }
+
+    //Check if Service is Running or Not
+    private fun isLocationServiceRunning(): Boolean {
+        val activityManager = getBaseActivity().getSystemService(AppCompatActivity.ACTIVITY_SERVICE) as ActivityManager
+        if (activityManager != null) {
+            for (service in activityManager.getRunningServices(Int.MAX_VALUE)) {
+                if (ForegroundService::class.java.name == service.service.className) {
+                    if (service.foreground) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+        return false
     }
 
     private fun viewModelObserver() {
@@ -83,6 +189,14 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>() {
                 getBaseActivity().showSnackBar("Location Updated.")
             }
         })
+
+        viewModel?.getAllUsersObserver()?.observe(viewLifecycleOwner, androidx.lifecycle.Observer {
+
+            Handler().postDelayed({
+                setUserLOcationOMap(it)
+            },2000)
+
+        })
     }
 
     private fun initViewModel() {
@@ -92,25 +206,8 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>() {
 
     private fun initMap() {
         supportMapFragment = childFragmentManager.findFragmentById(R.id.google_map) as SupportMapFragment?
+        supportMapFragment?.getMapAsync(this)
 
-        // Async map
-        supportMapFragment?.getMapAsync { googleMap ->
-            // When map is loaded
-            googleMap.setOnMapClickListener { latLng ->
-                // Initialize marker options
-                val markerOptions = MarkerOptions()
-                // Set position of marker
-                markerOptions.position(latLng)
-                // Set title of marker
-                markerOptions.title(latLng.latitude.toString() + " : " + latLng.longitude)
-                // Remove all marker
-                googleMap.clear()
-                // Animating to zoom the marker
-                googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 10f))
-                // Add marker on map
-                googleMap.addMarker(markerOptions)
-            }
-        }
     }
 
     private fun getCompleteAddressString(LATITUDE: Double, LONGITUDE: Double): String {
@@ -135,29 +232,43 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>() {
     }
 
     private fun setCurrentLocation(lat: Double, lng: Double) {
-        supportMapFragment?.getMapAsync { googleMap ->
-            val markerOptions = MarkerOptions()
-            // Set position of marker
-            markerOptions.position(LatLng(lat,lng))
-            // Set title of marker
-            markerOptions.title(getBaseActivity().auth.currentUser?.email.toString())
-            // Remove all marker
-            googleMap.clear()
 
-            if(animateCount == 0) {
-                // Animating to zoom the marker only for the first time
-                googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat,lng), 30f))
-            }
+        val markerOptions = MarkerOptions()
+        // Set position of marker
+        markerOptions.position(LatLng(lat,lng))
+        // Set title of marker
+        markerOptions.title(getBaseActivity().auth.currentUser?.email.toString())
+        // Remove all marker
+        googleMap?.clear()
 
-            // Add marker on map
-            googleMap.addMarker(markerOptions)
-            animateCount++
+        if(animateCount == 0) {
+            // Animating to zoom the marker only for the first time
+            googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat,lng), 30f))
         }
+
+        // Add marker on map
+        googleMap?.addMarker(markerOptions)
+        animateCount++
+
     }
 
     private fun getAllFriendsLocation() {
+        viewModel?.getAllUsersLocation()
+    }
+
+    private fun setUserLOcationOMap(data: AllUserModel) {
+
+        data.data.forEach {
+            googleMap?.addMarker(MarkerOptions().position(LatLng(it.Latitude.toDouble(),  it.Longitude.toDouble())).title("${it.Email}"))
+        }
 
     }
 
+    override fun onMapReady(map: GoogleMap) {
+        googleMap = map
+    }
 
+    override fun getLocation() {
+        getCurrentLocation()
+    }
 }

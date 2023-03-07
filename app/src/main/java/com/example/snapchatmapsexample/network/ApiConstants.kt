@@ -1,7 +1,6 @@
 package com.example.snapchatmapsexample.network
 
-import androidx.viewbinding.ViewBinding
-import com.example.snapchatmapsexample.base.BaseActivity
+
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -13,13 +12,11 @@ import java.util.concurrent.TimeUnit
 object ApiConstants {
 
     private var requestTimeout = 60
-    private var context : BaseActivity<ViewBinding>?= null
 
     private var retrofit : Retrofit? = null
     private var okHttpClient: OkHttpClient? = null
 
-    private const val BASE_URL = "http://192.168.1.3/3000/"
-
+    const val BASE_URL = "http://192.168.0.151:3000/"
 
     // Create Service
     private val service = getClient(BASE_URL, false).create(ApiServices::class.java)

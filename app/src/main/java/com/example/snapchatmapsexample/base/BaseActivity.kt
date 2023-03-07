@@ -21,6 +21,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.viewbinding.ViewBinding
 import com.example.snapchatmapsexample.R
 import com.example.snapchatmapsexample.activities.MainActivity
+import com.example.snapchatmapsexample.callbacks.GetLocationCallback
+import com.example.snapchatmapsexample.callbacks.LocationBackgroundCallback
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 
@@ -36,6 +38,12 @@ abstract class BaseActivity<V : ViewBinding> : AppCompatActivity() {
 
     var orientation = 0
     var homeActivity : MainActivity<ViewBinding>?= null
+
+    companion object {
+        var locationBackgroundCallback : LocationBackgroundCallback ?= null
+        var getLocationCallback : GetLocationCallback?= null
+        var isServiceEnded : Boolean = false
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         binding = createBinding()

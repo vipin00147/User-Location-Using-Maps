@@ -5,10 +5,12 @@ import androidx.lifecycle.MutableLiveData
 import androidx.viewbinding.ViewBinding
 import com.example.snapchatmapsexample.R
 import com.example.snapchatmapsexample.activities.MainActivity
+import com.example.snapchatmapsexample.model.AllUserModel
 import com.example.snapchatmapsexample.model.UserLocation
 import com.example.snapchatmapsexample.network.ApiConstants
 import com.example.snapchatmapsexample.utils.ConnectivityReceiver
 import com.example.snapchatmapsexample.network.responseAndErrorHandle.ApiResponse
+import com.google.gson.Gson
 import com.google.gson.JsonElement
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -22,10 +24,12 @@ class HomeRepository : Callback<JsonElement>, ApiResponse {
     constructor()
 
     private var userLocationUpdated : MutableLiveData<Boolean> = MutableLiveData()
+    private var allUserModel : MutableLiveData<AllUserModel> = MutableLiveData()
     lateinit var baseContainer : MainActivity<ViewBinding>
     lateinit var apiResponse : ApiResponse
 
     var callUpdateUser : Call<JsonElement> ?= null
+    var callAllUser : Call<JsonElement> ?= null
 
     fun initContext(baseActivity: MainActivity<ViewBinding>) {
         this.baseContainer = baseActivity
@@ -50,24 +54,16 @@ class HomeRepository : Callback<JsonElement>, ApiResponse {
         }
     }
 
-
     fun updateUserLocation(data: UserLocation, userLocationUpdated: MutableLiveData<Boolean>) {
         this.userLocationUpdated = userLocationUpdated
 
-        val jsonObject = JSONObject()
-        jsonObject.put("lat", data.lat)
-        jsonObject.put("lng", data.lng)
-        jsonObject.put("address", data.address)
-        jsonObject.put("email", data.email)
-
+        val jsonObject = Gson().toJson(data)
         val jsonObjectString = jsonObject.toString()
-
         val requestBody = jsonObjectString.toRequestBody("application/json".toMediaTypeOrNull())
 
         callUpdateUser = ApiConstants.getApiServices().updateUserLocation(requestBody)
         hitApi(callUpdateUser, true, baseContainer, this)
 
-        ApiConstants.getApiServices().updateUserLocation(requestBody).enqueue(this)
     }
 
     override fun onResponse(call: Call<JsonElement>, response: Response<JsonElement>) {
@@ -88,11 +84,26 @@ class HomeRepository : Callback<JsonElement>, ApiResponse {
         if(call == callUpdateUser) {
             userLocationUpdated.value = true
         }
+        else if(call == callAllUser) {
+            allUserModel.value = Gson().fromJson(response, AllUserModel::class.java)
+        }
     }
 
     override fun onError(call: Call<JsonElement>, errorCode: Int, errorMsg: String) {
         baseContainer.hideLoader()
         baseContainer.showSnackBar(errorMsg)
+    }
+
+    fun getAllUsersLocation(allUsers: MutableLiveData<AllUserModel>) {
+        this.allUserModel = allUsers
+        val jsonObject = JSONObject()
+        jsonObject.put("email", baseContainer.auth.currentUser?.email.toString())
+        //jsonObject.put("email", "222@gmail.com")
+        val jsonObjectString = jsonObject.toString()
+        val requestBody = jsonObjectString.toRequestBody("application/json".toMediaTypeOrNull())
+
+        callAllUser = ApiConstants.getApiServices().getAllUsersLocation(requestBody)
+        hitApi(callAllUser, true, baseContainer, this)
     }
 
 }
