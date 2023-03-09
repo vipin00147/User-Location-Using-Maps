@@ -1,5 +1,6 @@
 package com.example.snapchatmapsexample.base
 
+import android.app.ActivityManager
 import android.app.AlertDialog
 import android.app.Dialog
 import android.app.Service
@@ -23,8 +24,11 @@ import com.example.snapchatmapsexample.R
 import com.example.snapchatmapsexample.activities.MainActivity
 import com.example.snapchatmapsexample.callbacks.GetLocationCallback
 import com.example.snapchatmapsexample.callbacks.LocationBackgroundCallback
+import com.example.snapchatmapsexample.utils.Helper
+import com.example.snapchatmapsexample.utils.Helper.isAppRunning
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
+
 
 abstract class BaseActivity<V : ViewBinding> : AppCompatActivity() {
 
@@ -42,7 +46,7 @@ abstract class BaseActivity<V : ViewBinding> : AppCompatActivity() {
     companion object {
         var locationBackgroundCallback : LocationBackgroundCallback ?= null
         var getLocationCallback : GetLocationCallback?= null
-        var isServiceEnded : Boolean = false
+        var isServiceEnded : Boolean = true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,10 +58,11 @@ abstract class BaseActivity<V : ViewBinding> : AppCompatActivity() {
     abstract fun createBinding(): V
 
     fun hideStatusBar() {
+
         window.setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN ,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
+        )
     }
 
     fun showCutoutsOnNotch() {
@@ -89,13 +94,16 @@ abstract class BaseActivity<V : ViewBinding> : AppCompatActivity() {
     }
 
     fun showLoader() {
-        loaderDialog.show()
+        if(this.isAppRunning()) {
+            loaderDialog.show()
+        }
     }
 
     fun hideLoader() {
-        loaderDialog.dismiss()
+        if(this.isAppRunning()) {
+            loaderDialog.dismiss()
+        }
     }
-
 
     fun showSnackBar(msg: String) {
         val snackbar = Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG)

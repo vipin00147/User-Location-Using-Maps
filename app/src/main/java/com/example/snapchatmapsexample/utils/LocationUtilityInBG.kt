@@ -1,13 +1,11 @@
-package com.example.snapchatmapsexample.ui.fragments
+package com.example.snapchatmapsexample.utils
 
 import android.Manifest
 import android.app.Activity
-import android.app.Activity.RESULT_CANCELED
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
-import android.location.LocationManager
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -17,16 +15,14 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.databinding.ViewDataBinding
-import com.example.snapchatmapsexample.BuildConfig.APPLICATION_ID
+import androidx.fragment.app.Fragment
+import com.example.snapchatmapsexample.BuildConfig
 import com.example.snapchatmapsexample.R
-import com.example.snapchatmapsexample.base.BaseFragment
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 
-
-abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment<T>() {
+abstract class LocationUtilityInBG : Fragment() {
 
     private val TAG = "LocationUpdateUtilityfragment"
     private lateinit var mActivity: Activity
@@ -42,40 +38,40 @@ abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment
     private val requestMultiplePermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
 
-           if (permissions.isNotEmpty()) {
+            if (permissions.isNotEmpty()) {
 
-               Handler().postDelayed({
-                   //getBaseActivity().showLoader()
-               },1000)
+                Handler().postDelayed({
+                    //getBaseActivity().showLoader()
+                },1000)
 
-               permissions.entries.forEach {
-                   Log.d(TAG, "${it.key} = ${it.value}")
-               }
+                permissions.entries.forEach {
+                    Log.d(TAG, "${it.key} = ${it.value}")
+                }
 
-               val fineLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION]
-               val coarseLocation = permissions[Manifest.permission.ACCESS_COARSE_LOCATION]
+                val fineLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION]
+                val coarseLocation = permissions[Manifest.permission.ACCESS_COARSE_LOCATION]
 
-               if (fineLocation==true && coarseLocation==true) {
-                   Log.e(TAG, "Permission Granted Successfully")
-                  checkGpsOn()
-               } else {
-                   //getBaseActivity().showLoader()
-                   Log.e(TAG, "Permission not granted")
-                   checkPermissionDenied(permissions.keys.first())
-               }
-           }
+                if (fineLocation==true && coarseLocation==true) {
+                    Log.e(TAG, "Permission Granted Successfully")
+                    checkGpsOn()
+                } else {
+                    //getBaseActivity().showLoader()
+                    Log.e(TAG, "Permission not granted")
+                    checkPermissionDenied(permissions.keys.first())
+                }
+            }
         }
 
     private val gpsOnLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // There are no request codes
-                Log.e(TAG, "GPS Turned on successfully")
-                startLocationUpdates()
-            } else if (result.resultCode == RESULT_CANCELED) {
-                Log.e(TAG, "GPS Turned on failed")
-                locAlertDialogMethod()
-            }
+        if (result.resultCode == Activity.RESULT_OK) {
+            // There are no request codes
+            Log.e(TAG, "GPS Turned on successfully")
+            startLocationUpdates()
+        } else if (result.resultCode == Activity.RESULT_CANCELED) {
+            Log.e(TAG, "GPS Turned on failed")
+            locAlertDialogMethod()
         }
+    }
 
     private fun locAlertDialogMethod() {
 //        val locationDialog = Dialog(requireContext(), R.style.Theme_Dialog)
@@ -134,7 +130,6 @@ abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment
                     }
                     fusedLocationClient.lastLocation
                         .addOnSuccessListener { location: Location? ->
-                            getBaseActivity().hideLoader()
 
                             updatedLatLng(location?.latitude!!, location.longitude)
                             Log.e(
@@ -152,7 +147,7 @@ abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment
     fun checkLocationPermissions() {
         if (hasPermissions(permissions)) {
             Log.e(TAG, "Permissions Granted")
-           // getLiveLocation(requireActivity())
+            // getLiveLocation(requireActivity())
             checkGpsOn()
         } else if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
             checkPermissionDenied(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -217,7 +212,7 @@ abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment
                         intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                         val uri = Uri.fromParts(
                             "package",
-                            APPLICATION_ID,
+                            BuildConfig.APPLICATION_ID,
                             null
                         )
                         intent.data = uri
@@ -326,9 +321,10 @@ abstract class LocationUpdateUtilityFragment<T : ViewDataBinding> : BaseFragment
             fusedLocationClient.removeLocationUpdates(locationCallback)
             Log.e(TAG, "Get Live Location Stop")
         } catch (e: Exception) {
-           e.printStackTrace()
+            e.printStackTrace()
         }
     }
 
     abstract fun updatedLatLng(lat: Double, lng: Double)
+
 }

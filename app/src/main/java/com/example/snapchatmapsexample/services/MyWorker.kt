@@ -11,18 +11,23 @@ import android.os.CountDownTimer
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.MutableLiveData
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.example.snapchatmapsexample.R
 import com.example.snapchatmapsexample.activities.MainActivity
+import com.example.snapchatmapsexample.base.BaseActivity
 import com.example.snapchatmapsexample.base.BaseActivity.Companion.getLocationCallback
 import com.example.snapchatmapsexample.base.BaseActivity.Companion.isServiceEnded
 import com.example.snapchatmapsexample.base.BaseActivity.Companion.locationBackgroundCallback
 import com.example.snapchatmapsexample.callbacks.LocationBackgroundCallback
 import com.example.snapchatmapsexample.model.UserLocation
 import com.example.snapchatmapsexample.network.ApiConstants
+import com.example.snapchatmapsexample.repository.HomeRepository.Companion.homeRepository
 import com.google.gson.Gson
 import com.google.gson.JsonElement
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -37,24 +42,23 @@ import java.text.NumberFormat
 class MyWorker: Worker, Callback<JsonElement>, LocationBackgroundCallback {
 
     var getCallUpdateLocation: Call<JsonElement>? = null
-    lateinit var context: Context
-    var userLocation: UserLocation?= null
+    var context: Context ?= null
 
     constructor(context: Context, workerParams: WorkerParameters) : super(context, workerParams) {
+
     }
 
     override fun doWork(): Result {
-        context = applicationContext
+        this.context = applicationContext
         locationBackgroundCallback = this
-        updateDeviceLocation()
-
+        getLocationCallback?.getLocation()
         return Result.success()
     }
 
     private fun displayNotification(title: String, s: String) {
-        val notificationManager =
-            applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
             val channel = NotificationChannel(
                 "simplifiedcoding",
                 "simplifiedcoding",
@@ -70,7 +74,9 @@ class MyWorker: Worker, Callback<JsonElement>, LocationBackgroundCallback {
         intent.putExtras(bundle)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
 
-        val activity = PendingIntent.getActivity(applicationContext, 0, intent, 0)
+        val activity = PendingIntent.getActivity(applicationContext, 0, intent,
+            PendingIntent.FLAG_MUTABLE
+        )
 
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         val notification: NotificationCompat.Builder =
@@ -82,37 +88,25 @@ class MyWorker: Worker, Callback<JsonElement>, LocationBackgroundCallback {
                 .setContentIntent(activity)
                 .setStyle(NotificationCompat.BigTextStyle().bigText("Location Updated"))
         notificationManager.notify(1, notification.build())
+
     }
 
-    private fun updateDeviceLocation() {
-        ContextCompat.getMainExecutor(context).execute {
-            object : CountDownTimer(10000, 1000) {
-                override fun onTick(millisUntilFinished: Long) {
-                    // Used for formatting digit to be in 2 digits only
-                    val f: NumberFormat = DecimalFormat("0")
-                    val hour = millisUntilFinished / 3600000 % 24
-                    val min = millisUntilFinished / 60000 % 60
-                    val sec = millisUntilFinished / 1000 % 60
 
-                }
-
-                override fun onFinish() {
-                    getLocationCallback?.getLocation()
-                }
-            }.start()
-        }
-    }
 
     override fun onResponse(call: Call<JsonElement>, response: Response<JsonElement>) {
         if (response.isSuccessful) {
 
             onSuccess(call, response.code(), response.body()!!.toString())
         }
+        else{
+            Log.e("outoutdatais", "Not Success")
+        }
     }
 
     private fun onSuccess(call: Call<JsonElement>, code: Int, response: String) {
 
         if(call == getCallUpdateLocation) {
+            Log.e("outoutdatais", "Success")
 
             displayNotification("My Worker", "Location is Updated")
 
@@ -121,14 +115,25 @@ class MyWorker: Worker, Callback<JsonElement>, LocationBackgroundCallback {
     }
 
     override fun onFailure(call: Call<JsonElement>, t: Throwable) {
-        Log.d("response", t.message.toString())
+        Log.e("outoutdatais", t.message.toString())
     }
 
     override fun setUserCurrentLocation(data: UserLocation) {
         isServiceEnded = true
 
+        Log.d("outoutdatais", "setUserCurrentLocation()")
+
+        /*CoroutineScope(Dispatchers.IO).launch {
+            CoroutineScope(Dispatchers.Main).launch {
+                homeRepository.updateUserLocation(data, MutableLiveData(true))
+            }
+        }*/
+
+
         GlobalScope.launch {
 
+
+            //val jsonObject = Gson().toJson(UserLocation(0.0, 0.0, "", ""))
             val jsonObject = Gson().toJson(data)
             val jsonObjectString = jsonObject.toString()
             val requestBody = jsonObjectString.toRequestBody("application/json".toMediaTypeOrNull())

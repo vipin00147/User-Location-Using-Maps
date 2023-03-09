@@ -7,9 +7,11 @@ import android.location.Address
 import android.location.Geocoder
 import android.os.Bundle
 import android.os.Handler
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
@@ -30,9 +32,11 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
 import java.util.*
+import kotlin.collections.ArrayList
 
 class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMapReadyCallback,
     GetLocationCallback {
@@ -40,12 +44,14 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
     private var viewModel : HomeViewModel?= null
     var supportMapFragment : SupportMapFragment ?= null
     var googleMap: GoogleMap ?= null
-
+    val markerList = ArrayList<MarkerOptions>()
     var animateCount : Int = 0
     var count  = 0
 
     override fun updatedLatLng(lat: Double, lng: Double) {
         getBaseActivity().hideLoader()
+
+        Log.e("outoutdatais", "updatedLatLng(lat: Double, lng: Double)")
 
         if(getBaseActivity().auth.currentUser?.email != null) {
             //updating location to firebase
@@ -61,20 +67,22 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
                 count++
             }
 
+
             if(!isServiceEnded) {
-                locationBackgroundCallback?.setUserCurrentLocation(data)
+                ForegroundService().setUserCurrentLocation(data)
             }
 
             setCurrentLocation(lat, lng)
         }
 
-
-
-
         stopLocationUpdates()
+
     }
 
-    override fun onCreateBinding(
+
+
+
+    override fun onCreateBinding (
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
@@ -98,6 +106,7 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
             stopService(it)
         }
 
+        getCurrentLocation()
     }
 
     fun startService(view : View) {
@@ -108,6 +117,7 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
                 .setActionTextColor(Color.WHITE)
                 .setAction("Dismiss",View.OnClickListener {})
                 .show()
+
         }
         else {
 
@@ -120,18 +130,18 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
                 .setActionTextColor(Color.WHITE)
                 .setAction("Dismiss",View.OnClickListener {})
                 .show()
-
-            getCurrentLocation()
-
         }
     }
+
 
     private fun getCurrentLocation() {
         // Get Device Location...
 
+
         if(getBaseActivity().isGpsEnabled()) {
-            getBaseActivity().showLoader()
             getLiveLocation(getBaseActivity())
+            isServiceEnded = false
+            Log.e("outoutdatais", "getCurrentLocation()")
         }
         else {
             getBaseActivity().showSnackBar("Kindly enable GPS.")
@@ -186,7 +196,7 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
 
         viewModel?.getLocationUpdateObserver()?.observe(viewLifecycleOwner, androidx.lifecycle.Observer {
             if(it) {
-                getBaseActivity().showSnackBar("Location Updated.")
+//                getBaseActivity().showSnackBar("Location Updated.")
             }
         })
 
@@ -207,7 +217,6 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
     private fun initMap() {
         supportMapFragment = childFragmentManager.findFragmentById(R.id.google_map) as SupportMapFragment?
         supportMapFragment?.getMapAsync(this)
-
     }
 
     private fun getCompleteAddressString(LATITUDE: Double, LONGITUDE: Double): String {
@@ -232,22 +241,20 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
     }
 
     private fun setCurrentLocation(lat: Double, lng: Double) {
-
-        val markerOptions = MarkerOptions()
-        // Set position of marker
-        markerOptions.position(LatLng(lat,lng))
-        // Set title of marker
-        markerOptions.title(getBaseActivity().auth.currentUser?.email.toString())
-        // Remove all marker
         googleMap?.clear()
+
+        markerList.removeIf { it.title.equals("${getBaseActivity().auth.currentUser?.email}") }
+        markerList.add(MarkerOptions().position(LatLng(lat,  lng)).title(getBaseActivity().auth.currentUser?.email.toString()))
 
         if(animateCount == 0) {
             // Animating to zoom the marker only for the first time
             googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat,lng), 30f))
         }
 
-        // Add marker on map
-        googleMap?.addMarker(markerOptions)
+        markerList.forEach {
+            googleMap?.addMarker(it)
+        }
+
         animateCount++
 
     }
@@ -258,9 +265,20 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
 
     private fun setUserLOcationOMap(data: AllUserModel) {
 
+
         data.data.forEach {
-            googleMap?.addMarker(MarkerOptions().position(LatLng(it.Latitude.toDouble(),  it.Longitude.toDouble())).title("${it.Email}"))
+            markerList.add(MarkerOptions().position(LatLng(it.Latitude.toDouble(),  it.Longitude.toDouble())).title("${it.Email}"))
         }
+
+        markerList.forEach {
+            googleMap?.addMarker(it)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        getCurrentLocation()
 
     }
 
