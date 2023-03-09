@@ -1,31 +1,20 @@
 package com.example.snapchatmapsexample.services
 
-import android.annotation.SuppressLint
 import android.app.*
 import android.app.PendingIntent.FLAG_MUTABLE
 import android.content.Intent
-import android.location.Address
-import android.location.Geocoder
 import android.os.Build
 import android.os.CountDownTimer
 import android.os.IBinder
-import android.os.Looper
 import android.util.Log
 import androidx.annotation.Nullable
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.snapchatmapsexample.R
 import com.example.snapchatmapsexample.activities.MainActivity
 import com.example.snapchatmapsexample.base.BaseActivity
-import com.example.snapchatmapsexample.callbacks.LocationBackgroundCallback
 import com.example.snapchatmapsexample.model.UserLocation
 import com.example.snapchatmapsexample.network.ApiConstants
-import com.example.snapchatmapsexample.utils.LocationUtilityInBG
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import com.google.gson.JsonElement
 import kotlinx.coroutines.GlobalScope
@@ -37,8 +26,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.text.DecimalFormat
 import java.text.NumberFormat
-import java.util.*
-import kotlin.math.roundToInt
 
 class ForegroundService : Service(), Callback<JsonElement> {
 
@@ -137,7 +124,6 @@ class ForegroundService : Service(), Callback<JsonElement> {
 
         Log.d("outoutdatais", "setUserCurrentLocation()")
 
-
         GlobalScope.launch {
 
             val jsonObject = Gson().toJson(data)
@@ -149,13 +135,11 @@ class ForegroundService : Service(), Callback<JsonElement> {
         }
     }
 
-
     override fun onResponse(call: Call<JsonElement>, response: Response<JsonElement>) {
         if (response.isSuccessful) {
-
             onSuccess(call, response.code(), response.body()!!.toString())
         }
-        else{
+        else {
             Log.e("outoutdatais", "Not Success")
         }
     }
@@ -172,6 +156,5 @@ class ForegroundService : Service(), Callback<JsonElement> {
             //displayNotification("My Worker", "Location is Updated")
 
         }
-
     }
 }
