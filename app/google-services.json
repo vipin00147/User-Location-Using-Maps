@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1018757090608-qnubja93mf4mv1d1hj6pmlklrgdc7srg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.snapchatmapsexample",
+            "certificate_hash": "b43456210a8e384542a026627336ed14ad523d4a"
+          }
+        },
+        {
           "client_id": "1018757090608-q0d9clrfem7ogomsucku3af80mdbc60q.apps.googleusercontent.com",
           "client_type": 3
         }
