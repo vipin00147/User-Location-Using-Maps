@@ -35,12 +35,16 @@ class ForegroundService : Service(), Callback<JsonElement> {
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
 
         val input = intent.getStringExtra("inputExtra")
+
         createNotificationChannel()
+
         val notificationIntent = Intent(this, MainActivity::class.java)
+
         val pendingIntent = PendingIntent.getActivity(
             this,
             0, notificationIntent, FLAG_MUTABLE
         )
+
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Foreground Service")
             .setContentText(input)

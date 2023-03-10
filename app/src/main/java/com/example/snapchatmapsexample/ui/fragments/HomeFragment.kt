@@ -11,14 +11,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import com.example.snapchatmapsexample.R
 import com.example.snapchatmapsexample.base.BaseActivity.Companion.getLocationCallback
 import com.example.snapchatmapsexample.base.BaseActivity.Companion.isServiceEnded
-import com.example.snapchatmapsexample.base.BaseActivity.Companion.locationBackgroundCallback
 import com.example.snapchatmapsexample.callbacks.GetLocationCallback
 import com.example.snapchatmapsexample.databinding.FragmentHomeBinding
 import com.example.snapchatmapsexample.model.AllUserModel
@@ -32,14 +30,11 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
 import java.util.*
-import kotlin.collections.ArrayList
 
-class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMapReadyCallback,
-    GetLocationCallback {
+class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMapReadyCallback, GetLocationCallback {
 
     private var viewModel : HomeViewModel?= null
     var supportMapFragment : SupportMapFragment ?= null
@@ -67,7 +62,6 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
                 count++
             }
 
-
             if(!isServiceEnded) {
                 ForegroundService().setUserCurrentLocation(data)
             }
@@ -78,9 +72,6 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
         stopLocationUpdates()
 
     }
-
-
-
 
     override fun onCreateBinding (
         inflater: LayoutInflater,
@@ -107,6 +98,7 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
         }
 
         getCurrentLocation()
+
     }
 
     fun startService(view : View) {
@@ -132,7 +124,6 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
                 .show()
         }
     }
-
 
     private fun getCurrentLocation() {
         // Get Device Location...

@@ -70,6 +70,7 @@ dependencies {
     //Firebase
     implementation platform('com.google.firebase:firebase-bom:31.2.3')
     implementation 'com.google.firebase:firebase-auth-ktx'
+    implementation 'com.google.firebase:firebase-analytics-ktx'
 
     //Google maps
     implementation 'com.google.android.gms:play-services-maps:18.0.2'
@@ -82,5 +83,9 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
     implementation "com.squareup.retrofit2:adapter-rxjava2:2.4.0"
 
+    // work manager
     implementation 'androidx.work:work-runtime-ktx:2.8.0'
+
+
+
 }
