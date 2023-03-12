@@ -1,6 +1,10 @@
 package com.example.snapchatmapsexample.ui.fragments
 
+import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.text.TextUtils
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,9 +12,14 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.example.snapchatmapsexample.R
 import com.example.snapchatmapsexample.databinding.FragmentAuthBinding
+import com.example.snapchatmapsexample.services.MyFirebaseMessagingService
 import com.example.snapchatmapsexample.utils.changeFragment
 import com.example.snapchatmapsexample.viewModel.AuthViewModel
 import com.example.snapchatmapsexample.viewModel.ViewModelFactory
+import com.google.android.gms.tasks.*
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.FirebaseMessagingService
+
 
 class AuthFragment : LocationUpdateUtilityFragment<FragmentAuthBinding>() {
 
@@ -34,6 +43,14 @@ class AuthFragment : LocationUpdateUtilityFragment<FragmentAuthBinding>() {
         initViewModel()
         viewModelObserver()
         getLiveLocation(getBaseActivity())
+
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token: String ->
+            if (!TextUtils.isEmpty(token)) {
+                Log.e("onViewCreated", "$token")
+            } else {
+                Log.e("onViewCreated", "token should not be null...")
+            }
+        }
     }
 
     private fun viewModelObserver() {

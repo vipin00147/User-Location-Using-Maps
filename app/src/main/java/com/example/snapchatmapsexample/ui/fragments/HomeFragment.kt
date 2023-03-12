@@ -32,10 +32,14 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.ktx.Firebase
 import java.util.*
 
 class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMapReadyCallback, GetLocationCallback {
 
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
     private var viewModel : HomeViewModel?= null
     var supportMapFragment : SupportMapFragment ?= null
     var googleMap: GoogleMap ?= null
@@ -66,6 +70,13 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
                 ForegroundService().setUserCurrentLocation(data)
             }
 
+            val bundle = Bundle()
+            bundle.putDouble("lat", data.lat)
+            bundle.putDouble("lng", data.lng)
+            bundle.putString("address", data.address)
+            bundle.putString("email", data.email)
+            firebaseAnalytics.logEvent("update_location", bundle)
+
             setCurrentLocation(lat, lng)
         }
 
@@ -84,6 +95,7 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        firebaseAnalytics = Firebase.analytics
         initMap()
         initViewModel()
         viewModelObserver()
@@ -99,6 +111,8 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
 
         getCurrentLocation()
 
+
+
     }
 
     fun startService(view : View) {
@@ -111,6 +125,7 @@ class HomeFragment : LocationUpdateUtilityFragment<FragmentHomeBinding>(), OnMap
                 .show()
 
         }
+
         else {
 
             val serviceIntent = Intent(getBaseActivity(), ForegroundService::class.java)
